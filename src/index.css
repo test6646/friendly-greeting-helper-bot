@@ -1,0 +1,312 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* Add scrollbar hide utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  :root {
+    /* Updated colors with a lavender palette */
+    --background: 255 70% 97%; /* Lavender tinted background #F1F0FB */
+    --foreground: 270 20% 20%; /* Rich dark text #413A33 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 270 20% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 20% 20%;
+
+    --primary: 255 80% 74%; /* Main lavender #9b87f5 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 261 31% 50%; /* Secondary lavender #6E59A5 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 255 30% 92%;
+    --muted-foreground: 255 8% 40%;
+
+    --accent: 270 75% 86%; /* Light lavender accent #D6BCFA */
+    --accent-foreground: 270 20% 20%;
+
+    --destructive: 0 84% 48%; /* Kept red for alerts */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 255 30% 85%;
+    --input: 255 30% 85%;
+    --ring: 255 80% 74%; /* Match primary */
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 255 30% 10%;
+    --foreground: 255 42% 95%;
+
+    --card: 255 30% 15%;
+    --card-foreground: 255 42% 95%;
+
+    --popover: 255 30% 15%;
+    --popover-foreground: 255 42% 95%;
+
+    --primary: 255 70% 74%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 261 31% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 255 30% 20%;
+    --muted-foreground: 255 10% 65%;
+
+    --accent: 270 65% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 48%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 255 30% 30%;
+    --input: 255 30% 30%;
+    --ring: 255 70% 74%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* Added mobile touch optimization */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  h1, h2, h3, h4, h5, h6, button {
+    font-family: 'Poppins', sans-serif;
+  }
+
+  h1 {
+    @apply text-2xl md:text-3xl lg:text-4xl font-bold leading-tight tracking-tight;
+  }
+  
+  h2 {
+    @apply text-xl md:text-2xl lg:text-3xl font-bold leading-tight;
+  }
+  
+  h3 {
+    @apply text-lg md:text-xl lg:text-2xl font-semibold;
+  }
+  
+  h4 {
+    @apply text-base md:text-lg lg:text-xl font-semibold;
+  }
+
+  p {
+    @apply leading-relaxed;
+  }
+  
+  /* Mobile input optimizations */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  @media (min-width: 768px) {
+    input, textarea, select {
+      font-size: inherit !important;
+    }
+  }
+  
+  /* Optimize touch targets */
+  button, a, input[type="checkbox"], input[type="radio"] {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+  }
+  
+  /* Mobile scrolling optimization */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    @apply scrollbar-hide;
+  }
+}
+
+@layer components {
+  .hero-section {
+    @apply relative overflow-hidden min-h-[70vh] md:min-h-[60vh] flex items-center;
+    background: linear-gradient(135deg, rgba(155, 135, 245, 0.1) 0%, rgba(110, 89, 165, 0.05) 100%);
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98];
+  }
+  
+  .input-field {
+    @apply bg-white bg-opacity-80 backdrop-blur-sm border border-border rounded-lg px-3 py-2 md:px-4 md:py-2 focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white rounded-lg px-4 py-2 md:px-6 md:py-3 font-medium hover:opacity-90 transition-opacity;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-white rounded-lg px-4 py-2 md:px-6 md:py-3 font-medium hover:opacity-90 transition-opacity;
+  }
+  
+  .btn-accent {
+    @apply bg-accent text-white rounded-lg px-4 py-2 md:px-6 md:py-3 font-medium hover:opacity-90 transition-opacity;
+  }
+  
+  .section-title {
+    @apply text-xl md:text-2xl lg:text-3xl font-bold mb-3 md:mb-4 lg:mb-6 text-center font-poppins;
+  }
+  
+  .section-subtitle {
+    @apply text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-6 md:mb-8 text-center;
+  }
+  
+  .page-container {
+    @apply max-w-7xl mx-auto px-3 py-4 md:px-4 md:py-6 lg:px-6 lg:py-8;
+  }
+
+  .glass-card {
+    @apply bg-white bg-opacity-70 backdrop-blur-md shadow-sm hover:shadow-md rounded-lg border border-white border-opacity-20 transition-all duration-300;
+  }
+
+  .section-spacing {
+    @apply py-6 md:py-10 lg:py-16;
+  }
+  
+  /* Mobile optimized navigation */
+  .nav-link {
+    @apply font-medium text-gray-700 hover:text-primary transition-colors relative min-h-[44px] flex items-center;
+  }
+  
+  .nav-link-active {
+    @apply font-medium text-primary relative;
+  }
+  
+  /* Mobile optimized touch targets - minimum 44px */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  /* Mobile styling utilities */
+  .mobile-text {
+    @apply text-xs md:text-sm lg:text-base;
+  }
+  
+  .mobile-heading {
+    @apply text-lg md:text-xl lg:text-2xl;
+  }
+  
+  .mobile-icon {
+    @apply h-4 w-4 md:h-5 md:w-5;
+  }
+  
+  /* Mobile spacing utilities */
+  .mobile-p {
+    @apply p-2 md:p-3 lg:p-4;
+  }
+  
+  .mobile-m {
+    @apply m-2 md:m-3 lg:m-4;
+  }
+  
+  .mobile-py {
+    @apply py-2 md:py-3 lg:py-4;
+  }
+  
+  .mobile-px {
+    @apply px-2 md:px-3 lg:px-4;
+  }
+}
+
+/* For improved responsiveness */
+@layer utilities {
+  .container-fluid {
+    @apply w-full px-3 md:px-4 lg:px-6;
+  }
+  
+  /* Responsive padding utilities */
+  .py-section {
+    @apply py-6 md:py-8 lg:py-12;
+  }
+  
+  .px-section {
+    @apply px-3 md:px-4 lg:px-6;
+  }
+  
+  /* Text balance for improved typography */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Mobile-specific utilities */
+  @media (max-width: 767px) {
+    .mobile-only {
+      display: block;
+    }
+    
+    .desktop-only {
+      display: none;
+    }
+    
+    /* Reduce box shadows on mobile for performance */
+    .shadow, .shadow-sm, .shadow-md {
+      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .mobile-only {
+      display: none;
+    }
+    
+    .desktop-only {
+      display: block;
+    }
+  }
+  
+  /* Ensure proper button touch targets on mobile */
+  .touch-button {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+}
+
+/* Fix for iOS input zooming */
+@media screen and (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Ensure dropdowns are visible */
+.dropdown-menu {
+  @apply bg-background border border-border shadow-md rounded-md z-50;
+}
+
+/* Fixes for mobile tabs */
+.mobile-tabs [role="tablist"] {
+  @apply flex w-full overflow-x-auto scrollbar-hide;
+}
+
+.mobile-tabs [role="tab"] {
+  @apply whitespace-nowrap flex-shrink-0;
+}
+
+/* Ensure scrollable areas have proper inertia on iOS */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+}
