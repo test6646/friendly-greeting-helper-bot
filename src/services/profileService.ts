@@ -56,7 +56,7 @@ export const checkUserProfile = async (userId: string): Promise<ProfileCheckResu
     // For real users, check the database
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, first_name, last_name, role')
       .eq('id', userId)
       .single();
     

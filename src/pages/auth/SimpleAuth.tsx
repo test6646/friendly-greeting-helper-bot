@@ -73,32 +73,45 @@ const SimpleAuth: React.FC = () => {
   
   // When phone verification is successful
   const handleLoginSuccess = async () => {
+    console.log("Login success callback triggered");
     setCheckingUserData(true);
-    await refreshUser();
     
-    if (!user) {
-      console.error("No user after login success, this shouldn't happen");
-      setCheckingUserData(false);
-      return;
+    // Refresh user data to get latest state
+    try {
+      await refreshUser();
+      console.log("User data refreshed after login");
+    } catch (err) {
+      console.error("Error refreshing user data:", err);
     }
     
+    // Get the latest user data after refresh
+    const currentUser = useSimpleAuth().user;
+    console.log("Current user after refresh:", currentUser);
+    
     try {
+      if (!currentUser) {
+        console.error("No user after login success and refresh");
+        setCheckingUserData(false);
+        // If no user, stay on login page
+        return;
+      }
+      
       // Check if user already exists in database with complete profile
-      const profileResult = await checkUserProfile(user.id);
+      const profileResult = await checkUserProfile(currentUser.id);
       console.log("Profile check result after login:", profileResult);
       
       if (profileResult.isComplete) {
         // User exists with complete profile - redirect based on role
-        if (user.role === 'seller') {
+        if (currentUser.role === 'seller') {
           navigate('/seller/dashboard', { replace: true });
-        } else if (user.role === 'captain') {
+        } else if (currentUser.role === 'captain') {
           navigate('/captain/dashboard', { replace: true });
         } else {
           navigate(redirect, { replace: true });
         }
-      } else if (profileResult.exists && user.role) {
+      } else if (profileResult.exists && currentUser.role) {
         // Profile exists but incomplete with role - go to profile step
-        setSelectedRole(user.role as UserRole);
+        setSelectedRole(currentUser.role as UserRole);
         setStep('profile');
       } else {
         // No complete profile or no role - go to role selection

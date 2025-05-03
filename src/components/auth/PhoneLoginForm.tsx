@@ -142,34 +142,38 @@ const PhoneLoginForm: React.FC<PhoneLoginFormProps> = ({ onSuccess }) => {
             description: "You are now logged in (test mode)",
           });
           
-          if (onSuccess) {
-            onSuccess();
-          }
-          setLoading(false);
-          return;
+          // Make sure we wait a brief moment to ensure state is updated
+          setTimeout(() => {
+            if (onSuccess) {
+              console.log("Calling onSuccess callback for test mode verification");
+              onSuccess();
+            }
+          }, 100);
         } else {
           throw new Error("Invalid test code. Please use 000000 in test mode.");
         }
-      }
-      
-      // Regular OTP verification
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: formatPhoneNumber(phoneNumber),
-        token: otpCode,
-        type: 'sms'
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Verification Successful",
-        description: "Your phone number has been verified",
-      });
-      
-      if (onSuccess) {
-        onSuccess();
+      } else {
+        // Regular OTP verification
+        const { data, error } = await supabase.auth.verifyOtp({
+          phone: formatPhoneNumber(phoneNumber),
+          token: otpCode,
+          type: 'sms'
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast({
+          title: "Verification Successful",
+          description: "Your phone number has been verified",
+        });
+        
+        // Call onSuccess callback
+        if (onSuccess) {
+          console.log("Calling onSuccess callback for regular verification");
+          onSuccess();
+        }
       }
     } catch (error: any) {
       console.error("Error verifying OTP:", error);
