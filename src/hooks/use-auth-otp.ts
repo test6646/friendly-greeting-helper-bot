@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { saveUserProfile } from '@/services/profileService';
 
 interface OTPResult {
   success: boolean;
@@ -144,19 +145,60 @@ export const useAuthOTP = () => {
       if (testMode && otpCode === "000000") {
         console.log('Test mode: Using default OTP code');
         
-        // Create a fake session for test mode
-        const testUserData = {
-          id: `test-${Date.now()}`,
+        // Check if a user with this phone number already exists in the database
+        const { data: existingProfile, error: lookupError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, role, created_at')
+          .eq('phone', formattedPhone)
+          .maybeSingle();
+          
+        console.log("Lookup result for test user:", { existingProfile, lookupError });
+        
+        // Create a unique ID for the test user
+        const testUserId = `test-${Date.now()}`;
+        
+        // Create test user data
+        let testUserData: any = {
+          id: testUserId,
           phone: formattedPhone,
-          // Don't set default role - we'll ask user to select
           role: null,
           email: null,
           created_at: new Date().toISOString(),
-          // Don't set default names - we'll ask user to input
           first_name: null,
           last_name: null,
           isNewUser: true
         };
+        
+        let isNewUser = true;
+        
+        // If there's an existing user with this phone number, use their data
+        if (existingProfile && !lookupError) {
+          console.log("Found existing user with this phone number");
+          isNewUser = false;
+          
+          // Use existing user's data
+          testUserData = {
+            ...testUserData,
+            first_name: existingProfile.first_name,
+            last_name: existingProfile.last_name,
+            role: existingProfile.role,
+            isNewUser: false
+          };
+        } else {
+          // Create a new profile in the database for this test user
+          try {
+            const saveResult = await saveUserProfile(testUserId, {
+              phone: formattedPhone,
+              first_name: 'New',
+              last_name: 'User',
+              role: null
+            });
+            
+            console.log("Created new profile for test user:", saveResult);
+          } catch (saveError) {
+            console.error("Failed to create profile for test user:", saveError);
+          }
+        }
         
         // Store test user in local storage for persistence
         localStorage.setItem('test_mode_user', JSON.stringify(testUserData));
@@ -177,7 +219,7 @@ export const useAuthOTP = () => {
         return {
           success: true,
           session: mockSession,
-          isNewUser: true
+          isNewUser
         };
       }
 

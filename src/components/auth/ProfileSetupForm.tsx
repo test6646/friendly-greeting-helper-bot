@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { saveUserProfile } from '@/services/profileService';
 import type { UserRole } from './RoleSelectionForm';
 
 interface ProfileSetupFormProps {
@@ -84,85 +84,65 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
     setLoading(true);
     
     try {
-      // For test users, update localStorage
+      // Get the current user
+      let userId = '';
+      
+      // For test users, get ID from localStorage
       if (isTestUser) {
         const testModeUser = localStorage.getItem('test_mode_user');
         if (testModeUser) {
           const userData = JSON.parse(testModeUser);
+          userId = userData.id;
           
+          // Update test user data in localStorage
           const updatedUser = {
             ...userData,
             first_name: formData.firstName,
             last_name: formData.lastName,
             email: formData.email || null,
-            role: role,
-            ...(role === 'seller' && {
-              business_name: formData.businessName,
-              business_description: formData.businessDescription,
-              cuisine_type: formData.cuisineType
-            }),
-            ...(role === 'captain' && {
-              vehicle_type: formData.vehicleType,
-              vehicle_registration: formData.vehicleRegistration
-            })
+            role: role
           };
           
           localStorage.setItem('test_mode_user', JSON.stringify(updatedUser));
-          
-          toast({
-            title: "Profile Created",
-            description: `Your ${role} profile has been created successfully`,
-          });
-          
-          onSuccess();
-          return;
+        } else {
+          throw new Error("Test user data not found");
         }
-      }
-      
-      // For real users
-      // 1. Update auth metadata
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          role: role,
-          ...(formData.email && { email: formData.email })
+      } else {
+        // For real users, get ID from Supabase session
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("User not found");
         }
-      });
-      
-      if (metadataError) {
-        throw metadataError;
+        userId = user.id;
       }
       
-      // 2. Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("User not found");
+      if (!userId) {
+        throw new Error("Could not determine user ID");
       }
       
-      // 3. Update profile in database
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          role: role,
-          ...(formData.email && { email: formData.email })
-        })
-        .eq('id', user.id);
+      console.log("Creating/updating profile for user ID:", userId);
       
-      if (profileError) {
-        console.error("Failed to update profile in database:", profileError);
-        // Continue anyway as this isn't fatal
+      // Common profile data
+      const profileData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        role: role,
+        ...(formData.email && { email: formData.email })
+      };
+      
+      // Save profile data to database
+      const result = await saveUserProfile(userId, profileData);
+      
+      if (!result && !isTestUser) {
+        throw new Error("Failed to save profile");
       }
       
-      // 4. Create role-specific profile
+      // Create role-specific profile
       if (role === 'seller') {
         const { error: sellerError } = await supabase
           .from('seller_profiles')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             business_name: formData.businessName,
             business_description: formData.businessDescription || "Delicious homemade food",
             cuisine_types: [formData.cuisineType],
@@ -172,6 +152,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
           
         if (sellerError) {
           console.error("Failed to create seller profile:", sellerError);
+          // Continue anyway
         }
       }
       
@@ -179,7 +160,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         const { error: captainError } = await supabase
           .from('captain_profiles')
           .insert({
-            user_id: user.id,
+            user_id: userId,
             vehicle_type: formData.vehicleType,
             vehicle_registration: formData.vehicleRegistration,
             is_active: true
@@ -187,6 +168,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
           
         if (captainError) {
           console.error("Failed to create captain profile:", captainError);
+          // Continue anyway
         }
       }
       

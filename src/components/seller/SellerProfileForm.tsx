@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { Loader2 } from 'lucide-react';
+import { saveUserProfile } from '@/services/profileService';
 
 const SellerProfileForm = () => {
   const { user, isTestUser, refreshUser } = useSimpleAuth();
@@ -46,9 +46,24 @@ const SellerProfileForm = () => {
       
       console.log("Creating seller profile for user ID:", user.id);
       
-      // Check if we're using a test user
+      // Update user profile role to seller for all users (test and real)
+      await saveUserProfile(user.id, { role: 'seller' });
+      
+      // Create seller profile
+      const sellerProfileData = {
+        user_id: user.id,
+        business_name: formData.business_name,
+        business_description: formData.description,
+        phone_number: formData.phone_number,
+        cuisine_types: [formData.cuisine_type || 'Indian'],
+        service_areas: { address: formData.address },
+        verification_status: 'pending',
+        is_active: true,
+        kitchen_open: true
+      };
+      
+      // For test users, update localStorage
       if (isTestUser) {
-        // For test users, we'll just update the local storage data
         const testModeUser = localStorage.getItem('test_mode_user');
         if (testModeUser) {
           const updatedUser = JSON.parse(testModeUser);
@@ -63,47 +78,13 @@ const SellerProfileForm = () => {
           updatedUser.kitchen_open = true;
           
           localStorage.setItem('test_mode_user', JSON.stringify(updatedUser));
-          
-          toast({
-            title: "Seller Profile Created",
-            description: "You can now add meals to your menu"
-          });
-          
-          // Force refresh auth context
-          await refreshUser();
-          
-          // Redirect to seller dashboard
-          window.location.href = '/seller/dashboard';
-          return;
         }
       }
       
-      // Regular flow for real users
-      // Update user profile role to seller
-      const { error: profileUpdateError } = await supabase
-        .from('profiles')
-        .update({ role: 'seller' })
-        .eq('id', user.id);
-        
-      if (profileUpdateError) {
-        console.error("Failed to update profile role:", profileUpdateError);
-        // Continue anyway as we'll still create the seller profile
-      }
-      
-      // Create seller profile
+      // Insert into seller_profiles for all users (test and real)
       const { data, error } = await supabase
         .from('seller_profiles')
-        .insert({
-          user_id: user.id,
-          business_name: formData.business_name,
-          business_description: formData.description,
-          phone_number: formData.phone_number,
-          cuisine_types: [formData.cuisine_type || 'Indian'],
-          service_areas: { address: formData.address },
-          verification_status: 'pending',
-          is_active: true,
-          kitchen_open: true
-        })
+        .insert(sellerProfileData)
         .select('*');
 
       if (error) {

@@ -7,6 +7,7 @@ import ProfileSetupForm from '@/components/auth/ProfileSetupForm';
 import { Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
+import { checkUserProfile, saveUserProfile } from '@/services/profileService';
 
 const SimpleAuth: React.FC = () => {
   const [step, setStep] = useState<'login' | 'role' | 'profile'>('login');
@@ -19,31 +20,52 @@ const SimpleAuth: React.FC = () => {
   
   useEffect(() => {
     // Debug authentication state
-    console.log("Auth state in SimpleAuth:", { user, loading, step });
+    console.log("Auth state in SimpleAuth:", { user, loading, step, isTestUser });
     
     if (!loading && user) {
-      // Check if user is a new user without complete profile
-      const isExistingUser = user.first_name !== 'New' && 
-                            user.last_name !== 'User' && 
-                            user.role !== null && 
-                            user.role !== undefined;
-      
-      console.log("User exists check:", { isExistingUser, user });
-      
-      if (isExistingUser) {
-        // Existing user with complete profile - redirect based on role
-        if (user.role === 'seller') {
-          navigate('/seller/dashboard', { replace: true });
-        } else if (user.role === 'captain') {
-          navigate('/captain/dashboard', { replace: true });
-        } else {
-          navigate(redirect, { replace: true });
+      const checkUserSetup = async () => {
+        setCheckingUserData(true);
+        
+        try {
+          // Check if user has a complete profile
+          const profileResult = await checkUserProfile(user.id);
+          console.log("Profile check result:", profileResult);
+          
+          if (profileResult.isComplete) {
+            // Existing user with complete profile - redirect based on role
+            console.log("Complete profile detected, redirecting to dashboard");
+            
+            if (user.role === 'seller') {
+              navigate('/seller/dashboard', { replace: true });
+            } else if (user.role === 'captain') {
+              navigate('/captain/dashboard', { replace: true });
+            } else {
+              navigate(redirect, { replace: true });
+            }
+          } else if (profileResult.exists) {
+            // Profile exists but incomplete - determine what step to show
+            if (!user.role) {
+              console.log("User exists but needs role selection");
+              setStep('role');
+            } else {
+              console.log("User with role needs profile completion");
+              setSelectedRole(user.role as UserRole);
+              setStep('profile');
+            }
+          } else {
+            // New user - show role selection
+            console.log("New user detected, showing role selection");
+            setStep('role');
+          }
+        } catch (error) {
+          console.error("Error checking user profile:", error);
+          setStep('role'); // Default to role selection on error
+        } finally {
+          setCheckingUserData(false);
         }
-      } else {
-        // New user - show role selection
-        console.log("New user detected, showing role selection");
-        setStep('role');
-      }
+      };
+      
+      checkUserSetup();
     }
   }, [user, loading, navigate, redirect]);
   
@@ -52,55 +74,66 @@ const SimpleAuth: React.FC = () => {
     setCheckingUserData(true);
     await refreshUser();
     
-    // Check if user already exists in database with complete profile
+    if (!user) {
+      console.error("No user after login success, this shouldn't happen");
+      setCheckingUserData(false);
+      return;
+    }
+    
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, role')
-        .eq('id', user?.id)
-        .single();
+      // Check if user already exists in database with complete profile
+      const profileResult = await checkUserProfile(user.id);
+      console.log("Profile check result after login:", profileResult);
       
-      console.log("Profile fetch result:", { profile, error });
-      
-      if (error) {
-        console.error("Error fetching profile:", error);
-        setStep('role');
-      } else if (profile) {
-        const isCompleteProfile = 
-          profile.first_name !== 'New' && 
-          profile.last_name !== 'User' && 
-          profile.role !== null;
-        
-        if (isCompleteProfile) {
-          // User exists with complete profile - redirect based on role
-          if (profile.role === 'seller') {
-            navigate('/seller/dashboard', { replace: true });
-          } else if (profile.role === 'captain') {
-            navigate('/captain/dashboard', { replace: true });
-          } else {
-            navigate(redirect, { replace: true });
-          }
+      if (profileResult.isComplete) {
+        // User exists with complete profile - redirect based on role
+        if (user.role === 'seller') {
+          navigate('/seller/dashboard', { replace: true });
+        } else if (user.role === 'captain') {
+          navigate('/captain/dashboard', { replace: true });
         } else {
-          // User exists but incomplete profile - show role selection
-          setStep('role');
+          navigate(redirect, { replace: true });
         }
+      } else if (profileResult.exists && user.role) {
+        // Profile exists but incomplete with role - go to profile step
+        setSelectedRole(user.role as UserRole);
+        setStep('profile');
       } else {
-        // No profile found, show role selection
+        // No complete profile or no role - go to role selection
         setStep('role');
       }
     } catch (error) {
       console.error("Error in profile check:", error);
-      setStep('role');
+      setStep('role'); // Default to role selection on error
     } finally {
       setCheckingUserData(false);
     }
   };
   
   // When role is selected
-  const handleRoleSelected = (role: UserRole) => {
+  const handleRoleSelected = async (role: UserRole) => {
     console.log("Role selected:", role);
     setSelectedRole(role);
-    setStep('profile');
+    
+    if (!user) {
+      console.error("No user when role selected, this shouldn't happen");
+      return;
+    }
+    
+    try {
+      // Update user role in profile
+      await saveUserProfile(user.id, { role });
+      
+      // Refresh user data to get updated role
+      await refreshUser();
+      
+      // Continue to profile setup
+      setStep('profile');
+    } catch (error) {
+      console.error("Error updating role:", error);
+      // Continue to profile setup anyway
+      setStep('profile');
+    }
   };
   
   // When profile setup is complete

@@ -1,7 +1,9 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
+import { saveUserProfile } from "@/services/profileService";
 
 interface UserProfile {
   id: string;
@@ -75,6 +77,17 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setUser(testProfile);
           setIsTestUser(true);
           console.log('Test user refreshed:', testProfile);
+          
+          // Try to save/update the test user profile in the database
+          await saveUserProfile(testProfile.id, {
+            first_name: testProfile.first_name,
+            last_name: testProfile.last_name,
+            role: testProfile.role,
+            phone: testProfile.phone,
+            gender: testProfile.gender,
+            profile_image_url: testProfile.profile_image_url,
+          });
+          
           return;
         } catch (e) {
           console.error('Error refreshing test user:', e);
@@ -112,6 +125,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           
           setUser(userProfile);
           setSession(currentSession);
+          setIsTestUser(false);
           console.log('User profile refreshed:', userProfile);
         }
       } else {
@@ -119,6 +133,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Only clear user if we know there's no session
         setUser(null);
         setSession(null);
+        setIsTestUser(false);
       }
     } catch (error) {
       console.error("Error in refreshUser:", error);
@@ -200,6 +215,16 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             
             setSession(mockSession);
             console.log('Test user initialized:', testProfile);
+            
+            // Try to save/update the test user profile in the database
+            await saveUserProfile(testProfile.id, {
+              first_name: testProfile.first_name,
+              last_name: testProfile.last_name,
+              role: testProfile.role,
+              phone: testProfile.phone,
+              gender: testProfile.gender,
+              profile_image_url: testProfile.profile_image_url,
+            });
           } catch (e) {
             console.error('Error parsing test user:', e);
             localStorage.removeItem('test_mode_user');
@@ -212,6 +237,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           
           if (initialSession?.user) {
             setSession(initialSession);
+            setIsTestUser(false);
             
             // Fetch user profile
             const { data: profile, error } = await supabase

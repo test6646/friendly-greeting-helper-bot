@@ -17,29 +17,84 @@ export function useSellerProfile(userId: string | undefined) {
         setLoading(true);
         console.log("Checking seller profile for user:", userId);
         
-        // Check for seller profile using user_id
-        const { data, error } = await supabase
-          .from('seller_profiles')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
-          
-        if (error) {
-          if (error.code === 'PGRST116') {
-            console.log("No seller profile found for this user");
-            setHasSellerProfile(false);
+        // Check if this is a test user
+        const isTestUser = userId.startsWith('test-');
+        
+        if (isTestUser) {
+          // For test users, check localStorage first
+          const testModeUser = localStorage.getItem('test_mode_user');
+          if (testModeUser) {
+            try {
+              const userData = JSON.parse(testModeUser);
+              // Check if this test user has seller role
+              if (userData.role === 'seller') {
+                console.log("Test user has seller role");
+                
+                // Try to get seller profile from database first
+                const { data: dbProfile, error: dbError } = await supabase
+                  .from('seller_profiles')
+                  .select('*')
+                  .eq('user_id', userId)
+                  .single();
+                  
+                if (!dbError && dbProfile) {
+                  console.log("Found seller profile in database for test user:", dbProfile);
+                  setHasSellerProfile(true);
+                  setSellerProfile(dbProfile);
+                } else {
+                  // Create a simple profile object from test user data
+                  const testProfile = {
+                    id: `seller-${userId}`,
+                    user_id: userId,
+                    business_name: userData.business_name || "Test Kitchen",
+                    business_description: userData.business_description || "Test kitchen description",
+                    cuisine_types: [userData.cuisine_type || "Indian"],
+                    verification_status: 'verified',
+                    is_active: true,
+                    kitchen_open: true
+                  };
+                  
+                  console.log("Created test seller profile:", testProfile);
+                  setHasSellerProfile(true);
+                  setSellerProfile(testProfile);
+                }
+              } else {
+                console.log("Test user doesn't have seller role");
+                setHasSellerProfile(false);
+              }
+            } catch (error) {
+              console.error("Error parsing test user data:", error);
+              setHasSellerProfile(false);
+            }
           } else {
-            console.error('Error checking seller profile:', error);
-            toast({
-              title: 'Error',
-              description: 'Failed to load seller information',
-              variant: 'destructive'
-            });
+            console.log("No test user data found");
+            setHasSellerProfile(false);
           }
-        } else if (data) {
-          console.log("Found seller profile:", data);
-          setHasSellerProfile(true);
-          setSellerProfile(data);
+        } else {
+          // For real users, check the database
+          const { data, error } = await supabase
+            .from('seller_profiles')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+            
+          if (error) {
+            if (error.code === 'PGRST116') {
+              console.log("No seller profile found for this user");
+              setHasSellerProfile(false);
+            } else {
+              console.error('Error checking seller profile:', error);
+              toast({
+                title: 'Error',
+                description: 'Failed to load seller information',
+                variant: 'destructive'
+              });
+            }
+          } else if (data) {
+            console.log("Found seller profile:", data);
+            setHasSellerProfile(true);
+            setSellerProfile(data);
+          }
         }
         
       } catch (error) {
