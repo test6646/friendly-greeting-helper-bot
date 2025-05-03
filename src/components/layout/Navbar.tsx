@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
-  Menu, X, User, LogIn, ShoppingCart, Bell, ChevronDown, Truck, Store, Settings, UserRound
+  Menu, X, UserRound, LogIn, ShoppingCart, Bell, ChevronDown, Truck, Store, Settings
 } from 'lucide-react';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
 import { 
@@ -25,11 +25,18 @@ const NavLink: React.FC<{ to: string; children: React.ReactNode; onClick?: () =>
   children,
   onClick 
 }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+  
   return (
     <Link 
       to={to} 
       onClick={onClick}
-      className="text-foreground/90 hover:text-primary transition-colors py-2 px-1 font-medium"
+      className={`transition-colors py-2 px-1 font-medium ${
+        isActive 
+          ? "text-primary font-semibold" 
+          : "text-foreground/90 hover:text-primary"
+      }`}
     >
       {children}
     </Link>

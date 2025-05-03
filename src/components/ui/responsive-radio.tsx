@@ -3,6 +3,7 @@ import React from 'react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RadioOption {
   value: string;
@@ -30,6 +31,8 @@ export function ResponsiveRadioGroup({
   className,
   name
 }: ResponsiveRadioGroupProps) {
+  const isMobile = useIsMobile();
+  
   // Size classes for consistent sizing
   const sizeClasses = {
     sm: "text-sm",
@@ -37,12 +40,15 @@ export function ResponsiveRadioGroup({
     lg: "text-lg",
   };
   
-  // Radio button sizes
+  // Radio button sizes - larger on mobile for better touch targets
   const radioSizes = {
-    sm: "h-4 w-4",
-    md: "h-5 w-5",
-    lg: "h-6 w-6",
+    sm: isMobile ? "h-5 w-5" : "h-4 w-4",
+    md: isMobile ? "h-6 w-6" : "h-5 w-5",
+    lg: isMobile ? "h-7 w-7" : "h-6 w-6",
   };
+  
+  // Spacing adjustments for mobile
+  const spacingClass = isMobile ? "space-x-3" : "space-x-2";
 
   return (
     <RadioGroup
@@ -58,8 +64,9 @@ export function ResponsiveRadioGroup({
         <div 
           key={option.value}
           className={cn(
-            "flex items-center space-x-2",
-            orientation === 'horizontal' ? "mr-4 mb-2" : "mb-2"
+            "flex items-center",
+            spacingClass,
+            orientation === 'horizontal' ? "mr-4 mb-2" : "mb-3"
           )}
         >
           <RadioGroupItem 
@@ -74,11 +81,18 @@ export function ResponsiveRadioGroup({
             htmlFor={`${name}-${option.value}`} 
             className={cn(
               "flex items-center cursor-pointer",
-              sizeClasses[size]
+              sizeClasses[size],
+              isMobile ? "text-base" : "",
+              "min-h-[44px] flex items-center" // Ensure minimum touch target size on mobile
             )}
           >
             {option.icon && <span className="mr-1.5">{option.icon}</span>}
-            {option.label}
+            <div>
+              <div>{option.label}</div>
+              {option.description && (
+                <div className="text-xs text-muted-foreground">{option.description}</div>
+              )}
+            </div>
           </Label>
         </div>
       ))}

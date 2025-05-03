@@ -21,7 +21,7 @@ const ResponsiveInput = React.forwardRef<HTMLInputElement, ResponsiveInputProps>
     const baseStyles = "flex rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
     
     // Adjusted sizes for better mobile experience
-    const mobileDefaultStyles = "h-12 text-base px-4 py-3"; // Increased height and padding 
+    const mobileDefaultStyles = "h-12 text-base px-4 py-3"; // Increased height and padding for better touch targets
     const desktopDefaultStyles = "h-11 text-sm px-4 py-2.5";
     
     const responsiveStyles = isMobile 
@@ -61,6 +61,9 @@ const ResponsiveInput = React.forwardRef<HTMLInputElement, ResponsiveInputProps>
             className={inputStyles}
             ref={ref}
             {...props}
+            style={{
+              fontSize: isMobile ? '16px' : undefined, // Prevents zoom on focus in iOS
+            }}
           />
         </div>
         {errorMessage && (

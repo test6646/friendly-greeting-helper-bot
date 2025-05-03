@@ -1,11 +1,11 @@
 
 import React from 'react';
-import Navbar from './Navbar';
 import Footer from './Footer';
 import { motion } from 'framer-motion';
 import { Toaster } from "@/components/ui/toaster";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLocation } from 'react-router-dom';
+import Navbar from './Navbar';
 
 interface LayoutProps {
   children: React.ReactNode;
