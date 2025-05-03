@@ -166,7 +166,7 @@ export const saveUserProfile = async (userId: string, profileData: Record<string
     // Check if profile already exists
     const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, first_name, last_name')
       .eq('id', userId)
       .maybeSingle();
       
@@ -194,10 +194,17 @@ export const saveUserProfile = async (userId: string, profileData: Record<string
       result = data;
       console.log("Profile updated successfully:", data);
     } else {
-      // Create new profile
+      // Create new profile - ensure we have the required fields
+      const newProfileData = {
+        id: userId,
+        first_name: profileData.first_name || 'New',
+        last_name: profileData.last_name || 'User',
+        ...profileData
+      };
+      
       const { data, error } = await supabase
         .from('profiles')
-        .insert({ id: userId, ...profileData })
+        .insert(newProfileData)
         .select()
         .single();
         
