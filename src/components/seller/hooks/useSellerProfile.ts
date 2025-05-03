@@ -42,21 +42,45 @@ export function useSellerProfile(userId: string | undefined) {
                   setHasSellerProfile(true);
                   setSellerProfile(dbProfile);
                 } else {
-                  // Create a simple profile object from test user data
-                  const testProfile = {
-                    id: `seller-${userId}`,
-                    user_id: userId,
-                    business_name: userData.business_name || "Test Kitchen",
-                    business_description: userData.business_description || "Test kitchen description",
-                    cuisine_types: [userData.cuisine_type || "Indian"],
-                    verification_status: 'verified',
-                    is_active: true,
-                    kitchen_open: true
-                  };
+                  console.log("No seller profile found in database for test user, creating one");
                   
-                  console.log("Created test seller profile:", testProfile);
-                  setHasSellerProfile(true);
-                  setSellerProfile(testProfile);
+                  // Create a new seller profile in the database
+                  const { data: newProfile, error: createError } = await supabase
+                    .from('seller_profiles')
+                    .insert({
+                      user_id: userId,
+                      business_name: userData.business_name || "Test Kitchen",
+                      business_description: userData.business_description || "Test kitchen description",
+                      cuisine_types: [userData.cuisine_type || "Indian"],
+                      verification_status: 'verified',
+                      is_active: true,
+                      kitchen_open: true
+                    })
+                    .select()
+                    .single();
+                    
+                  if (createError) {
+                    console.error("Error creating seller profile:", createError);
+                    
+                    // Create a simple profile object from test user data as fallback
+                    const testProfile = {
+                      id: `seller-${userId}`,
+                      user_id: userId,
+                      business_name: userData.business_name || "Test Kitchen",
+                      business_description: userData.business_description || "Test kitchen description",
+                      cuisine_types: [userData.cuisine_type || "Indian"],
+                      verification_status: 'verified',
+                      is_active: true,
+                      kitchen_open: true
+                    };
+                    
+                    setHasSellerProfile(true);
+                    setSellerProfile(testProfile);
+                  } else {
+                    console.log("Created seller profile for test user:", newProfile);
+                    setHasSellerProfile(true);
+                    setSellerProfile(newProfile);
+                  }
                 }
               } else {
                 console.log("Test user doesn't have seller role");

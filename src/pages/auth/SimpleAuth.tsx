@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
@@ -6,7 +7,6 @@ import RoleSelectionForm, { UserRole } from '@/components/auth/RoleSelectionForm
 import ProfileSetupForm from '@/components/auth/ProfileSetupForm';
 import { Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
 import { checkUserProfile, saveUserProfile } from '@/services/profileService';
 
 const SimpleAuth: React.FC = () => {
@@ -31,8 +31,8 @@ const SimpleAuth: React.FC = () => {
           const profileResult = await checkUserProfile(user.id);
           console.log("Profile check result:", profileResult);
           
+          // User with complete profile (has first name, last name, and role)
           if (profileResult.isComplete) {
-            // Existing user with complete profile - redirect based on role
             console.log("Complete profile detected, redirecting to dashboard");
             
             if (user.role === 'seller') {
@@ -42,8 +42,9 @@ const SimpleAuth: React.FC = () => {
             } else {
               navigate(redirect, { replace: true });
             }
-          } else if (profileResult.exists) {
-            // Profile exists but incomplete - determine what step to show
+          } 
+          // User exists but incomplete profile (missing first name, last name, or role)
+          else if (profileResult.exists) {
             if (!user.role) {
               console.log("User exists but needs role selection");
               setStep('role');
@@ -52,8 +53,9 @@ const SimpleAuth: React.FC = () => {
               setSelectedRole(user.role as UserRole);
               setStep('profile');
             }
-          } else {
-            // New user - show role selection
+          } 
+          // New user
+          else {
             console.log("New user detected, showing role selection");
             setStep('role');
           }

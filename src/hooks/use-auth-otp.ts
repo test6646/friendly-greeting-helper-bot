@@ -161,7 +161,7 @@ export const useAuthOTP = () => {
         let testUserData: any = {
           id: testUserId,
           phone: formattedPhone,
-          role: null,
+          role: null,  // Always set role to null for new test users
           email: null,
           created_at: new Date().toISOString(),
           first_name: null,
@@ -191,7 +191,7 @@ export const useAuthOTP = () => {
               phone: formattedPhone,
               first_name: 'New',
               last_name: 'User',
-              role: null
+              role: null  // Ensure role is null to trigger role selection
             });
             
             console.log("Created new profile for test user:", saveResult);

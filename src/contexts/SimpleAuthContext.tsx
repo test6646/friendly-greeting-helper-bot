@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -66,10 +65,10 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           // Create user profile from test data
           const testProfile: UserProfile = {
             id: testUserData.id,
-            first_name: testUserData.first_name || 'Test',
+            first_name: testUserData.first_name || 'New',
             last_name: testUserData.last_name || 'User',
             phone: testUserData.phone || '+910000000000',
-            role: testUserData.role || 'customer',
+            role: testUserData.role || '',
             gender: testUserData.gender || 'prefer_not_to_say',
             profile_image_url: testUserData.profile_image_url,
           };
@@ -118,7 +117,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             last_name: profile.last_name,
             phone: currentSession.user.phone || profile.phone || '',
             ...(currentSession.user.email ? { email: currentSession.user.email } : {}),
-            role: profile.role,
+            role: profile.role || '',
             gender: profile.gender,
             profile_image_url: profile.profile_image_url,
           };
@@ -194,10 +193,10 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             // Create user profile from test data
             const testProfile: UserProfile = {
               id: testUserData.id,
-              first_name: testUserData.first_name || 'Test',
+              first_name: testUserData.first_name || 'New',
               last_name: testUserData.last_name || 'User',
               phone: testUserData.phone || '+910000000000',
-              role: testUserData.role || 'customer',
+              role: testUserData.role || '',
               gender: testUserData.gender || 'prefer_not_to_say',
               profile_image_url: testUserData.profile_image_url,
             };
@@ -253,7 +252,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 last_name: profile.last_name,
                 phone: initialSession.user.phone || profile.phone || '',
                 ...(initialSession.user.email ? { email: initialSession.user.email } : {}),
-                role: profile.role,
+                role: profile.role || '',
                 gender: profile.gender,
                 profile_image_url: profile.profile_image_url,
               };
@@ -262,9 +261,8 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               console.log('User profile loaded:', userProfile);
             } else {
               console.log("No profile found or error:", error);
-              // Keep loading state true if profile not found
-              setLoading(false);
             }
+            setLoading(false);
           } else {
             console.log("No initial session found");
             setUser(null);
