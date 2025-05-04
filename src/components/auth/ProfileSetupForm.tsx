@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { saveUserProfile } from '@/services/profileService';
 import type { UserRole } from './RoleSelectionForm';
 import { motion } from 'framer-motion';
+import { ResponsiveInput } from '@/components/ui/responsive-input';
 
 interface ProfileSetupFormProps {
   role: UserRole;
@@ -255,14 +256,16 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         
         <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name *</Label>
-            <Input
+            <Label htmlFor="firstName" className="text-base">First Name *</Label>
+            <ResponsiveInput
               id="firstName"
               name="firstName"
               value={formData.firstName}
               onChange={handleChange}
               className={errors.firstName ? "border-red-500" : ""}
+              mobileStyles="h-14 text-base"
               required
+              placeholder="Your first name"
             />
             {errors.firstName && (
               <p className="text-xs text-red-500">{errors.firstName}</p>
@@ -270,14 +273,16 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name *</Label>
-            <Input
+            <Label htmlFor="lastName" className="text-base">Last Name *</Label>
+            <ResponsiveInput
               id="lastName"
               name="lastName"
               value={formData.lastName}
               onChange={handleChange}
               className={errors.lastName ? "border-red-500" : ""}
+              mobileStyles="h-14 text-base"
               required
+              placeholder="Your last name"
             />
             {errors.lastName && (
               <p className="text-xs text-red-500">{errors.lastName}</p>
@@ -286,14 +291,16 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         </motion.div>
         
         <motion.div variants={itemVariants} className="space-y-2">
-          <Label htmlFor="email">Email (Optional)</Label>
-          <Input
+          <Label htmlFor="email" className="text-base">Email (Optional)</Label>
+          <ResponsiveInput
             id="email"
             name="email"
             type="email"
             value={formData.email}
             onChange={handleChange}
             className={errors.email ? "border-red-500" : ""}
+            mobileStyles="h-14 text-base"
+            placeholder="your@email.com"
           />
           {errors.email && (
             <p className="text-xs text-red-500">{errors.email}</p>
@@ -303,22 +310,23 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         {/* Seller-specific fields */}
         {role === 'seller' && (
           <motion.div variants={itemVariants}>
-            <div className="space-y-1 pt-2">
-              <h3 className="text-lg font-semibold">Kitchen Details</h3>
+            <div className="space-y-1 pt-4 border-t border-gray-100 mt-6">
+              <h3 className="text-lg font-semibold mt-4">Kitchen Details</h3>
               <p className="text-sm text-muted-foreground mb-3">
                 Tell us about your food business
               </p>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="businessName">Kitchen/Business Name *</Label>
-                <Input
+                <Label htmlFor="businessName" className="text-base">Kitchen/Business Name *</Label>
+                <ResponsiveInput
                   id="businessName"
                   name="businessName"
                   value={formData.businessName}
                   onChange={handleChange}
                   className={errors.businessName ? "border-red-500" : ""}
+                  mobileStyles="h-14 text-base"
                   placeholder="E.g., Amma's Kitchen"
                   required
                 />
@@ -328,25 +336,26 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="businessDescription">Description</Label>
+                <Label htmlFor="businessDescription" className="text-base">Description</Label>
                 <Textarea
                   id="businessDescription"
                   name="businessDescription"
                   value={formData.businessDescription}
                   onChange={handleChange}
                   placeholder="Describe your food business"
+                  className="min-h-[100px] text-base"
                   rows={3}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="cuisineType">Cuisine Type *</Label>
+                <Label htmlFor="cuisineType" className="text-base">Cuisine Type *</Label>
                 <select
                   id="cuisineType"
                   name="cuisineType"
                   value={formData.cuisineType}
                   onChange={handleChange}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-transparent"
+                  className="w-full h-14 px-4 py-2 rounded-md border border-input bg-transparent text-base"
                   required
                 >
                   {cuisineOptions.map(option => (
@@ -363,22 +372,22 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         {/* Captain-specific fields */}
         {role === 'captain' && (
           <motion.div variants={itemVariants}>
-            <div className="space-y-1 pt-2">
-              <h3 className="text-lg font-semibold">Vehicle Information</h3>
+            <div className="space-y-1 pt-4 border-t border-gray-100 mt-6">
+              <h3 className="text-lg font-semibold mt-4">Vehicle Information</h3>
               <p className="text-sm text-muted-foreground mb-3">
                 Tell us about your delivery vehicle
               </p>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="vehicleType">Vehicle Type *</Label>
+                <Label htmlFor="vehicleType" className="text-base">Vehicle Type *</Label>
                 <select
                   id="vehicleType"
                   name="vehicleType"
                   value={formData.vehicleType}
                   onChange={handleChange}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-transparent"
+                  className="w-full h-14 px-4 py-2 rounded-md border border-input bg-transparent text-base"
                   required
                 >
                   {vehicleOptions.map(option => (
@@ -390,13 +399,14 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="vehicleRegistration">Vehicle Registration Number *</Label>
-                <Input
+                <Label htmlFor="vehicleRegistration" className="text-base">Vehicle Registration Number *</Label>
+                <ResponsiveInput
                   id="vehicleRegistration"
                   name="vehicleRegistration"
                   value={formData.vehicleRegistration}
                   onChange={handleChange}
                   className={errors.vehicleRegistration ? "border-red-500" : ""}
+                  mobileStyles="h-14 text-base"
                   placeholder="E.g., MH02AB1234"
                   required
                 />
@@ -409,7 +419,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         )}
         
         {/* Terms Agreement */}
-        <motion.div variants={itemVariants} className="flex items-start space-x-3 pt-4">
+        <motion.div variants={itemVariants} className="flex items-start space-x-3 pt-4 border-t border-gray-100 mt-6">
           <Checkbox 
             id="terms" 
             checked={agreeTerms}
@@ -437,7 +447,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         <motion.div variants={itemVariants}>
           <Button 
             type="submit" 
-            className="w-full py-6 text-lg mt-4" 
+            className="w-full py-6 text-lg mt-6" 
             disabled={loading}
           >
             {loading ? (

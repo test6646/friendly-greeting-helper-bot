@@ -53,23 +53,77 @@
 
 /* OTP Input Customization */
 .otp-input {
-  @apply h-12 w-12 text-xl font-bold text-center border border-primary/30 rounded-lg focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+  @apply h-14 w-14 text-xl font-bold text-center border border-primary/30 rounded-lg focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+}
+
+@media (max-width: 640px) {
+  .otp-input {
+    @apply h-12 w-12;
+  }
 }
 
 /* Role Selection Styling */
 .role-card {
-  @apply border-2 border-muted hover:border-primary/50 bg-background/80 p-4 rounded-lg transition-all duration-200 cursor-pointer;
+  @apply border-2 border-muted hover:border-primary/50 bg-background/80 p-6 md:p-4 rounded-lg transition-all duration-200 cursor-pointer;
 }
 
 .role-card.active {
-  @apply border-primary bg-primary/5;
+  @apply border-primary bg-primary/5 shadow-md;
 }
 
 /* Custom Button Styles */
 .auth-button-primary {
-  @apply bg-primary hover:bg-primary/90 text-white h-12 text-lg font-medium transition-all duration-200;
+  @apply bg-primary hover:bg-primary/90 text-white h-14 md:h-12 text-lg font-medium transition-all duration-200;
 }
 
 .auth-button-outline {
-  @apply border border-primary/30 hover:border-primary text-primary hover:bg-primary/5 h-12 text-lg font-medium transition-all duration-200;
+  @apply border border-primary/30 hover:border-primary text-primary hover:bg-primary/5 h-14 md:h-12 text-lg font-medium transition-all duration-200;
+}
+
+/* Form field spacing */
+.form-field-group {
+  @apply space-y-6 md:space-y-4;
+}
+
+.form-field {
+  @apply space-y-2;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhance mobile form experience */
+@media (max-width: 640px) {
+  .mobile-input {
+    @apply h-14 text-base py-2.5;
+  }
+  
+  .mobile-select {
+    @apply h-14 text-base;
+  }
+  
+  .mobile-button {
+    @apply py-3.5 text-base;
+  }
+  
+  .mobile-label {
+    @apply text-base;
+  }
+  
+  .mobile-spacing {
+    @apply space-y-6;
+  }
 }

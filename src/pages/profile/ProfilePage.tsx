@@ -20,6 +20,8 @@ import OrderHistory from '@/components/profile/OrderHistory';
 import PaymentMethods from '@/components/profile/PaymentMethods';
 import ProfileLayout from '@/components/profile/ProfileLayout';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
+import { ResponsiveInput } from '@/components/ui/responsive-input';
+import { getUserProfile } from '@/services/profileService';
 
 const ProfilePage = () => {
   const { user, loading: authLoading } = useSimpleAuth();
@@ -58,14 +60,11 @@ const ProfilePage = () => {
           setFetchError(null);
           
           console.log("Fetching profile data for user:", user.id);
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (error) {
-            console.error('Error fetching profile data:', error);
+          
+          // Handle both real and test users with the getUserProfile function
+          const profileData = await getUserProfile(user.id);
+          
+          if (!profileData) {
             setFetchError("Failed to load profile data. Please try again.");
             toast({
               title: "Error",
@@ -75,18 +74,17 @@ const ProfilePage = () => {
             return;
           }
 
-          if (data) {
-            console.log("Profile data fetched successfully:", data);
-            setProfileData({
-              first_name: data.first_name || '',
-              last_name: data.last_name || '',
-              email: user.email || '',
-              phone: data.phone || '',
-              gender: data.gender || '',
-              profile_image_url: data.profile_image_url || ''
-            });
-            setIsDataFetched(true);
-          }
+          console.log("Profile data fetched successfully:", profileData);
+          setProfileData({
+            first_name: profileData.first_name || '',
+            last_name: profileData.last_name || '',
+            email: profileData.email || user.email || '',
+            phone: profileData.phone || user.phone || '',
+            gender: profileData.gender || '',
+            profile_image_url: profileData.profile_image_url || ''
+          });
+          setIsDataFetched(true);
+          
         } catch (error: any) {
           console.error('Error in fetchProfileData:', error);
           setFetchError("Failed to load profile data. Please try again.");
@@ -133,6 +131,32 @@ const ProfilePage = () => {
     if (!fileToUpload || !user) return;
 
     try {
+      // For test users, just update localStorage
+      if (user.id.startsWith('test-')) {
+        const testModeUser = localStorage.getItem('test_mode_user');
+        if (testModeUser) {
+          const userData = JSON.parse(testModeUser);
+          
+          // Convert image to data URL for test users
+          const reader = new FileReader();
+          return new Promise<void>((resolve) => {
+            reader.onloadend = () => {
+              userData.profile_image_url = reader.result;
+              localStorage.setItem('test_mode_user', JSON.stringify(userData));
+              setProfileData(prev => ({ ...prev, profile_image_url: reader.result as string }));
+              toast({
+                title: "Success",
+                description: "Profile picture updated successfully",
+              });
+              resolve();
+            };
+            reader.readAsDataURL(fileToUpload);
+          });
+        }
+        return;
+      }
+      
+      // For real users, upload to Supabase storage
       const fileExt = fileToUpload.name.split('.').pop();
       const filePath = `profile-images/${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
@@ -189,7 +213,29 @@ const ProfilePage = () => {
         await uploadProfileImage();
       }
       
-      // Update profile in database
+      // For test users, update localStorage
+      if (user.id.startsWith('test-')) {
+        const testModeUser = localStorage.getItem('test_mode_user');
+        if (testModeUser) {
+          const userData = JSON.parse(testModeUser);
+          Object.assign(userData, {
+            first_name: profileData.first_name,
+            last_name: profileData.last_name,
+            gender: profileData.gender,
+          });
+          localStorage.setItem('test_mode_user', JSON.stringify(userData));
+          
+          toast({
+            title: "Success",
+            description: "Profile updated successfully",
+          });
+          
+          setIsEditing(false);
+          return;
+        }
+      }
+      
+      // Update profile in database for real users
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -284,6 +330,7 @@ const ProfilePage = () => {
               <Badge className={`px-3 py-1 text-sm capitalize ${
                 user.role === 'seller' ? 'bg-primary text-white' : 
                 user.role === 'admin' ? 'bg-purple-500 text-white' : 
+                user.role === 'captain' ? 'bg-blue-500 text-white' :
                 'bg-gray-200 text-gray-800'
               }`}>
                 {user.role}
@@ -299,14 +346,18 @@ const ProfilePage = () => {
           >
             {/* Profile Tab */}
             {activeTab === 'profile' && (
-              <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
                 <h2 className="text-2xl font-bold mb-6">Personal Information</h2>
                 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Profile Image */}
                   <div className="flex flex-col items-center mb-6">
                     <div className="relative group">
-                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/20 bg-gray-100">
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/20 bg-gray-100 shadow-lg">
                         {(profileData.profile_image_url || previewImage) ? (
                           <img 
                             src={previewImage || profileData.profile_image_url}
@@ -322,7 +373,7 @@ const ProfilePage = () => {
                       
                       {isEditing && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          <label htmlFor="profile-image" className="cursor-pointer p-2 bg-white rounded-full">
+                          <label htmlFor="profile-image" className="cursor-pointer p-2 bg-white rounded-full hover:bg-gray-100 transition-colors">
                             <Camera className="h-5 w-5 text-primary" />
                             <input 
                               id="profile-image"
@@ -337,8 +388,8 @@ const ProfilePage = () => {
                     </div>
                     
                     {isEditing && fileToUpload && (
-                      <div className="flex items-center mt-2 text-sm text-gray-600">
-                        <Check className="h-4 w-4 text-green-500 mr-1" />
+                      <div className="flex items-center mt-2 text-sm text-green-600 dark:text-green-400">
+                        <Check className="h-4 w-4 mr-1" />
                         New image selected
                       </div>
                     )}
@@ -352,62 +403,71 @@ const ProfilePage = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="first-name">First Name</Label>
-                      <Input 
+                      <Label htmlFor="first-name" className="text-base">First Name</Label>
+                      <ResponsiveInput
                         id="first-name"
                         value={profileData.first_name}
                         onChange={(e) => setProfileData({...profileData, first_name: e.target.value})}
                         disabled={!isEditing}
                         className="border-gray-300 focus:border-primary focus:ring-primary"
+                        mobileStyles="h-14 text-lg"
+                        fullWidth
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="last-name">Last Name</Label>
-                      <Input 
+                      <Label htmlFor="last-name" className="text-base">Last Name</Label>
+                      <ResponsiveInput
                         id="last-name"
                         value={profileData.last_name}
                         onChange={(e) => setProfileData({...profileData, last_name: e.target.value})}
                         disabled={!isEditing}
                         className="border-gray-300 focus:border-primary focus:ring-primary"
+                        mobileStyles="h-14 text-lg"
+                        fullWidth
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
+                      <Label htmlFor="email" className="text-base">Email</Label>
+                      <ResponsiveInput
                         id="email"
                         value={profileData.email}
                         disabled
                         className="bg-gray-50"
+                        mobileStyles="h-14 text-lg"
+                        fullWidth
                       />
                       <p className="text-xs text-gray-500">Contact support to change your email</p>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input 
+                      <Label htmlFor="phone" className="text-base">Phone Number</Label>
+                      <ResponsiveInput
                         id="phone"
                         value={profileData.phone}
                         onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
                         disabled={!isEditing}
                         className="border-gray-300 focus:border-primary focus:ring-primary"
+                        mobileStyles="h-14 text-lg"
+                        fullWidth
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="gender">Gender</Label>
+                      <Label htmlFor="gender" className="text-base">Gender</Label>
                       <select
                         id="gender"
                         value={profileData.gender || ''}
                         onChange={(e) => setProfileData({...profileData, gender: e.target.value})}
                         disabled={!isEditing}
-                        className="w-full border-gray-300 rounded-md focus:border-primary focus:ring-primary disabled:bg-gray-50"
+                        className="w-full h-12 md:h-10 border-gray-300 rounded-md focus:border-primary focus:ring-primary disabled:bg-gray-50 px-4 py-2 text-base"
                       >
                         <option value="">Select Gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
                         <option value="other">Other</option>
+                        <option value="prefer_not_to_say">Prefer not to say</option>
                       </select>
                     </div>
                   </div>
@@ -420,62 +480,84 @@ const ProfilePage = () => {
                           variant="outline" 
                           onClick={() => setIsEditing(false)}
                           disabled={isLoading}
+                          className="min-w-[100px] py-2"
                         >
                           Cancel
                         </Button>
                         <Button 
                           type="submit"
                           disabled={isLoading}
-                          className="bg-primary hover:bg-primary/90"
+                          className="bg-primary hover:bg-primary/90 min-w-[100px] py-2"
                         >
-                          {isLoading ? "Saving..." : "Save Changes"}
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : "Save Changes"}
                         </Button>
                       </>
                     ) : (
                       <Button 
                         type="button" 
                         onClick={() => setIsEditing(true)}
-                        className="bg-primary hover:bg-primary/90"
+                        className="bg-primary hover:bg-primary/90 min-w-[120px] py-2"
                       >
                         Edit Profile
                       </Button>
                     )}
                   </div>
                 </form>
-              </>
+              </motion.div>
             )}
             
             {/* Addresses Tab */}
             {activeTab === 'addresses' && (
-              <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
                 <h2 className="text-2xl font-bold mb-6">Delivery Addresses</h2>
                 <AddressForm userId={user.id} />
-              </>
+              </motion.div>
             )}
             
             {/* Orders Tab */}
             {activeTab === 'orders' && (
-              <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
                 <h2 className="text-2xl font-bold mb-6">Order History</h2>
                 <OrderHistory userId={user.id} />
-              </>
+              </motion.div>
             )}
             
             {/* Payment Methods Tab */}
             {activeTab === 'payment' && (
-              <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
                 <h2 className="text-2xl font-bold mb-6">Payment Methods</h2>
                 <PaymentMethods userId={user.id} />
-              </>
+              </motion.div>
             )}
             
             {/* Settings Tab */}
             {activeTab === 'settings' && (
-              <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
                 <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
                 
                 <div className="space-y-6">
-                  {/* Notifications Settings */}
+                  {/* Settings content remains the same */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Notifications</h3>
                     <div className="space-y-3">
@@ -538,15 +620,19 @@ const ProfilePage = () => {
                     </p>
                   </div>
                 </div>
-              </>
+              </motion.div>
             )}
             
             {/* Seller Verification Tab */}
             {activeTab === 'verification' && user.role === 'seller' && (
-              <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
                 <h2 className="text-2xl font-bold mb-6">Seller Verification</h2>
                 <SellerVerificationForm userId={user.id} />
-              </>
+              </motion.div>
             )}
           </ProfileLayout>
         </div>

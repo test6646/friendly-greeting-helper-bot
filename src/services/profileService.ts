@@ -127,7 +127,7 @@ export const getUserProfile = async (userId: string) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle(); // Using maybeSingle instead of single to handle case when no data is found
     
     if (error) {
       console.error("Error fetching user profile:", error);
