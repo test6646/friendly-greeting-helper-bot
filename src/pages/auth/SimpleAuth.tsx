@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
@@ -8,7 +7,7 @@ import ProfileSetupForm from '@/components/auth/ProfileSetupForm';
 import { Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { checkUserProfile, saveUserProfile } from '@/services/profileService';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 const SimpleAuth: React.FC = () => {
   const [step, setStep] = useState<'login' | 'role' | 'profile'>('login');
