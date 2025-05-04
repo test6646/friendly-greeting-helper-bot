@@ -15,6 +15,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { initializeOrderStatusListener } from '@/services/enhancedNotificationService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const CaptainDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -178,8 +179,20 @@ const CaptainDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse text-primary">Loading...</div>
+      <div className="space-y-6 animate-pulse">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
+        </div>
+        
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
