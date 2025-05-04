@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { saveUserProfile } from '@/services/profileService';
 import type { UserRole } from './RoleSelectionForm';
+import { motion } from 'framer-motion';
 
 interface ProfileSetupFormProps {
   role: UserRole;
@@ -33,49 +34,60 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
     vehicleRegistration: ''
   });
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when field is edited
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Valid email is required';
+    }
+    
+    if (role === 'seller' && !formData.businessName.trim()) {
+      newErrors.businessName = 'Business name is required';
+    }
+    
+    if (role === 'captain' && !formData.vehicleRegistration.trim()) {
+      newErrors.vehicleRegistration = 'Vehicle registration is required';
+    }
+    
+    if (!agreeTerms) {
+      newErrors.terms = 'You must agree to the terms';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.lastName) {
+    if (!validateForm()) {
       toast({
-        title: "Missing Information",
-        description: "Please provide your full name",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (role === 'seller' && !formData.businessName) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide your business name",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (role === 'captain' && !formData.vehicleRegistration) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide your vehicle registration",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!agreeTerms) {
-      toast({
-        title: "Terms Agreement Required",
-        description: "Please agree to the terms to continue",
+        title: "Form Validation Error",
+        description: "Please fix the errors in the form",
         variant: "destructive",
       });
       return;
@@ -177,7 +189,10 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         description: `Your ${role} profile has been created successfully`,
       });
       
-      onSuccess();
+      // Small delay before calling onSuccess
+      setTimeout(() => {
+        onSuccess();
+      }, 500);
     } catch (error: any) {
       console.error("Error creating profile:", error);
       toast({
@@ -185,7 +200,6 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         description: error.message || "Failed to create profile",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -205,56 +219,98 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
     { value: 'Other', label: 'Other' }
   ];
   
+  // Form animation
+  const formVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        duration: 0.4,
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
+  };
+  
   return (
-    <Card className="w-full shadow-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">
-          {role === 'customer' ? 'Create Your Profile' : 
-           role === 'seller' ? 'Create Seller Profile' : 
-           'Create Captain Profile'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                required
-              />
-            </div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={formVariants}
+      className="space-y-6"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <motion.div variants={itemVariants} className="space-y-1">
+          <h3 className="text-lg font-semibold">Personal Information</h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Tell us a bit about yourself
+          </p>
+        </motion.div>
+        
+        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName">First Name *</Label>
+            <Input
+              id="firstName"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className={errors.firstName ? "border-red-500" : ""}
+              required
+            />
+            {errors.firstName && (
+              <p className="text-xs text-red-500">{errors.firstName}</p>
+            )}
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email (Optional)</Label>
+            <Label htmlFor="lastName">Last Name *</Label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
+              id="lastName"
+              name="lastName"
+              value={formData.lastName}
               onChange={handleChange}
+              className={errors.lastName ? "border-red-500" : ""}
+              required
             />
+            {errors.lastName && (
+              <p className="text-xs text-red-500">{errors.lastName}</p>
+            )}
           </div>
-          
-          {/* Seller-specific fields */}
-          {role === 'seller' && (
-            <>
+        </motion.div>
+        
+        <motion.div variants={itemVariants} className="space-y-2">
+          <Label htmlFor="email">Email (Optional)</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            className={errors.email ? "border-red-500" : ""}
+          />
+          {errors.email && (
+            <p className="text-xs text-red-500">{errors.email}</p>
+          )}
+        </motion.div>
+        
+        {/* Seller-specific fields */}
+        {role === 'seller' && (
+          <motion.div variants={itemVariants}>
+            <div className="space-y-1 pt-2">
+              <h3 className="text-lg font-semibold">Kitchen Details</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Tell us about your food business
+              </p>
+            </div>
+            
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="businessName">Kitchen/Business Name *</Label>
                 <Input
@@ -262,8 +318,13 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
                   name="businessName"
                   value={formData.businessName}
                   onChange={handleChange}
+                  className={errors.businessName ? "border-red-500" : ""}
+                  placeholder="E.g., Amma's Kitchen"
                   required
                 />
+                {errors.businessName && (
+                  <p className="text-xs text-red-500">{errors.businessName}</p>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -295,12 +356,21 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
                   ))}
                 </select>
               </div>
-            </>
-          )}
-          
-          {/* Captain-specific fields */}
-          {role === 'captain' && (
-            <>
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Captain-specific fields */}
+        {role === 'captain' && (
+          <motion.div variants={itemVariants}>
+            <div className="space-y-1 pt-2">
+              <h3 className="text-lg font-semibold">Vehicle Information</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Tell us about your delivery vehicle
+              </p>
+            </div>
+            
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="vehicleType">Vehicle Type *</Label>
                 <select
@@ -326,45 +396,65 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
                   name="vehicleRegistration"
                   value={formData.vehicleRegistration}
                   onChange={handleChange}
+                  className={errors.vehicleRegistration ? "border-red-500" : ""}
+                  placeholder="E.g., MH02AB1234"
                   required
                 />
+                {errors.vehicleRegistration && (
+                  <p className="text-xs text-red-500">{errors.vehicleRegistration}</p>
+                )}
               </div>
-            </>
-          )}
-          
-          {/* Terms Agreement */}
-          <div className="flex items-start space-x-2 pt-2">
-            <Checkbox 
-              id="terms" 
-              checked={agreeTerms}
-              onCheckedChange={(checked) => setAgreeTerms(checked === true)} 
-              className="mt-1"
-            />
-            <div>
-              <Label 
-                htmlFor="terms" 
-                className="text-sm text-muted-foreground"
-              >
-                I agree to the Terms of Service and Privacy Policy
-              </Label>
             </div>
+          </motion.div>
+        )}
+        
+        {/* Terms Agreement */}
+        <motion.div variants={itemVariants} className="flex items-start space-x-3 pt-4">
+          <Checkbox 
+            id="terms" 
+            checked={agreeTerms}
+            onCheckedChange={(checked) => {
+              setAgreeTerms(checked === true);
+              if (checked) {
+                setErrors(prev => ({ ...prev, terms: '' }));
+              }
+            }} 
+            className="mt-1"
+          />
+          <div>
+            <Label 
+              htmlFor="terms" 
+              className={`text-sm ${errors.terms ? "text-red-500" : "text-muted-foreground"}`}
+            >
+              I agree to the Terms of Service and Privacy Policy
+            </Label>
+            {errors.terms && (
+              <p className="text-xs text-red-500 mt-1">{errors.terms}</p>
+            )}
           </div>
-          
+        </motion.div>
+        
+        <motion.div variants={itemVariants}>
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full py-6 text-lg mt-4" 
             disabled={loading}
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Creating Profile...
               </>
-            ) : "Create Profile"}
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-5 w-5" />
+                Complete Profile
+              </>
+            )}
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </motion.div>
+      </form>
+    </motion.div>
   );
 };
 

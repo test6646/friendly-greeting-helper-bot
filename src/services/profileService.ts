@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
 
 // Interface for complete profile check result
 export interface ProfileCheckResult {
@@ -77,6 +76,14 @@ export const checkUserProfile = async (userId: string): Promise<ProfileCheckResu
       profile.last_name !== 'User' && 
       profile.last_name !== null &&
       profile.role !== null;
+    
+    console.log("Profile check result:", { 
+      exists: true, 
+      isComplete,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      role: profile.role
+    });
     
     return { 
       exists: true, 
