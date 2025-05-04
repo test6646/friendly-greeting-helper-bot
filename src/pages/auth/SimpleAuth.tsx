@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSimpleAuth } from '@/contexts/SimpleAuthContext';
@@ -17,27 +18,51 @@ const SimpleAuth: React.FC = () => {
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
   const [checkingUserData, setCheckingUserData] = useState(false);
+  const [localUser, setLocalUser] = useState<any>(null);
   
+  // Track local user state for test mode users
+  useEffect(() => {
+    if (user) {
+      setLocalUser(user);
+    }
+    
+    // For test users, also check localStorage directly
+    if (isTestUser && !user) {
+      const testModeUser = localStorage.getItem('test_mode_user');
+      if (testModeUser) {
+        try {
+          const userData = JSON.parse(testModeUser);
+          setLocalUser(userData);
+        } catch (e) {
+          console.error("Error parsing test user data:", e);
+        }
+      }
+    }
+  }, [user, isTestUser]);
+  
+  // User state handling
   useEffect(() => {
     // Debug authentication state
-    console.log("Auth state in SimpleAuth:", { user, loading, step, isTestUser });
+    console.log("Auth state in SimpleAuth:", { user, localUser, loading, step, isTestUser });
     
-    if (!loading && user) {
+    const activeUser = user || localUser;
+    
+    if (!loading && activeUser) {
       const checkUserSetup = async () => {
         setCheckingUserData(true);
         
         try {
           // Check if user has a complete profile
-          const profileResult = await checkUserProfile(user.id);
+          const profileResult = await checkUserProfile(activeUser.id);
           console.log("Profile check result:", profileResult);
           
           // User with complete profile (has first name, last name, and role)
           if (profileResult.isComplete) {
             console.log("Complete profile detected, redirecting to dashboard");
             
-            if (user.role === 'seller') {
+            if (activeUser.role === 'seller') {
               navigate('/seller/dashboard', { replace: true });
-            } else if (user.role === 'captain') {
+            } else if (activeUser.role === 'captain') {
               navigate('/captain/dashboard', { replace: true });
             } else {
               navigate(redirect, { replace: true });
@@ -45,12 +70,12 @@ const SimpleAuth: React.FC = () => {
           } 
           // User exists but incomplete profile (missing first name, last name, or role)
           else if (profileResult.exists) {
-            if (!user.role) {
+            if (!activeUser.role) {
               console.log("User exists but needs role selection");
               setStep('role');
             } else {
               console.log("User with role needs profile completion");
-              setSelectedRole(user.role as UserRole);
+              setSelectedRole(activeUser.role as UserRole);
               setStep('profile');
             }
           } 
@@ -69,7 +94,7 @@ const SimpleAuth: React.FC = () => {
       
       checkUserSetup();
     }
-  }, [user, loading, navigate, redirect]);
+  }, [user, localUser, loading, navigate, redirect]);
   
   // When phone verification is successful
   const handleLoginSuccess = async () => {
@@ -80,72 +105,82 @@ const SimpleAuth: React.FC = () => {
     try {
       await refreshUser();
       console.log("User data refreshed after login");
+      
+      // For test users, get the user data directly from localStorage
+      if (isTestUser) {
+        const testModeUser = localStorage.getItem('test_mode_user');
+        if (testModeUser) {
+          try {
+            const userData = JSON.parse(testModeUser);
+            setLocalUser(userData);
+            
+            // Check if user already has role and profile
+            if (userData.role && userData.first_name !== 'New' && userData.last_name !== 'User') {
+              if (userData.role === 'seller') {
+                navigate('/seller/dashboard', { replace: true });
+              } else if (userData.role === 'captain') {
+                navigate('/captain/dashboard', { replace: true });
+              } else {
+                navigate(redirect, { replace: true });
+              }
+              setCheckingUserData(false);
+              return;
+            }
+            
+            // If test user doesn't have role, show role selection
+            setStep('role');
+            setCheckingUserData(false);
+            return;
+          } catch (e) {
+            console.error("Error parsing test user data:", e);
+          }
+        }
+      }
     } catch (err) {
       console.error("Error refreshing user data:", err);
     }
     
-    try {
-      // Wait for the user context to be actually updated
-      setTimeout(async () => {
-        const currentUser = user; // Get fresh user data
-        console.log("Current user after login success:", currentUser);
-        
-        if (!currentUser) {
-          console.error("No user after login success and refresh");
-          setCheckingUserData(false);
-          return;
-        }
-        
-        try {
-          // Check if user already exists in database with complete profile
-          const profileResult = await checkUserProfile(currentUser.id);
-          console.log("Profile check result after login:", profileResult);
-          
-          if (profileResult.isComplete) {
-            // User exists with complete profile - redirect based on role
-            if (currentUser.role === 'seller') {
-              navigate('/seller/dashboard', { replace: true });
-            } else if (currentUser.role === 'captain') {
-              navigate('/captain/dashboard', { replace: true });
-            } else {
-              navigate(redirect, { replace: true });
-            }
-          } else if (profileResult.exists && currentUser.role) {
-            // Profile exists but incomplete with role - go to profile step
-            setSelectedRole(currentUser.role as UserRole);
-            setStep('profile');
-          } else {
-            // No complete profile or no role - go to role selection
-            setStep('role');
-          }
-        } catch (error) {
-          console.error("Error in profile check:", error);
-          setStep('role'); // Default to role selection on error
-        } finally {
-          setCheckingUserData(false);
-        }
-      }, 300); // Give it a moment to update context
-    } catch (error) {
-      console.error("Unexpected error in handleLoginSuccess:", error);
-      setCheckingUserData(false);
-      setStep('role'); // Default to role selection on error
-    }
+    setCheckingUserData(false);
   };
   
   // When role is selected
   const handleRoleSelected = async (role: UserRole) => {
-    console.log("Role selected:", role, "User ID:", user?.id);
+    console.log("Role selected:", role);
+    const activeUser = user || localUser;
+    console.log("Active user when role selected:", activeUser);
+    
     setSelectedRole(role);
     
-    if (!user) {
+    if (!activeUser) {
       console.error("No user when role selected, this shouldn't happen");
+      toast({
+        title: "Error",
+        description: "User information not found. Please try logging in again.",
+        variant: "destructive",
+      });
       return;
     }
     
     try {
       // Update user role in profile
-      await saveUserProfile(user.id, { role });
-      console.log("User role updated to:", role);
+      const updatedProfile = await saveUserProfile(activeUser.id, { role });
+      console.log("User role updated to:", role, "Profile result:", updatedProfile);
+      
+      // Update local user data for test users
+      if (isTestUser) {
+        const testModeUser = localStorage.getItem('test_mode_user');
+        if (testModeUser) {
+          try {
+            const userData = JSON.parse(testModeUser);
+            userData.role = role;
+            localStorage.setItem('test_mode_user', JSON.stringify(userData));
+            setLocalUser({...userData});
+            console.log("Updated test user in localStorage:", userData);
+          } catch (e) {
+            console.error("Error updating test user data:", e);
+          }
+        }
+      }
       
       // Refresh user data to get updated role
       await refreshUser();

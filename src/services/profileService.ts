@@ -149,7 +149,7 @@ export const getUserProfile = async (userId: string) => {
  */
 export const saveUserProfile = async (userId: string, profileData: Record<string, any>) => {
   try {
-    // For test users, save to localStorage and also to the database if possible
+    // For test users, save to localStorage 
     const isTestUser = userId.startsWith('test-');
     
     if (isTestUser) {
@@ -161,13 +161,16 @@ export const saveUserProfile = async (userId: string, profileData: Record<string
           const updatedData = { ...userData, ...profileData };
           localStorage.setItem('test_mode_user', JSON.stringify(updatedData));
           console.log("Test user profile saved to localStorage:", updatedData);
+          return updatedData;
         } catch (error) {
           console.error("Error updating test user data:", error);
+          return null;
         }
       }
+      return null;
     }
     
-    // For all users (including test users), attempt to save to the database
+    // For real users, save to the database
     console.log("Saving profile to database for user:", userId, profileData);
     
     // Check if profile already exists

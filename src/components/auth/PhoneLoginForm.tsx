@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -215,27 +214,33 @@ const PhoneLoginForm: React.FC<PhoneLoginFormProps> = ({ onSuccess }) => {
       // For test mode
       if (testMode) {
         if (otpCode === '000000') {
-          // Create a test user
+          // Create a test user with a unique ID
           const testUserData = {
             id: `test-${Date.now()}`,
             phone: formatPhoneNumber(phoneNumber),
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            // Initialize with empty values to trigger the role selection
+            first_name: 'New',
+            last_name: 'User',
+            role: '',
+            gender: 'prefer_not_to_say',
           };
           
+          console.log("Creating test user with data:", testUserData);
           localStorage.setItem('test_mode_user', JSON.stringify(testUserData));
           
           toast({
             title: "Test Login Successful",
-            description: "You are now logged in (test mode)",
+            description: "You are now logged in with test mode",
           });
           
-          // Make sure we wait a brief moment to ensure state is updated
+          // Wait a moment to ensure data is saved before proceeding
           setTimeout(() => {
             if (onSuccess) {
               console.log("Calling onSuccess callback for test mode verification");
               onSuccess();
             }
-          }, 300);
+          }, 500);
         } else {
           throw new Error("Invalid test code. Please use 000000 in test mode.");
         }
@@ -269,6 +274,7 @@ const PhoneLoginForm: React.FC<PhoneLoginFormProps> = ({ onSuccess }) => {
         description: error.message || "Failed to verify code",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   };
