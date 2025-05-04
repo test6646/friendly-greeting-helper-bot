@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,7 @@ import { saveUserProfile } from '@/services/profileService';
 import type { UserRole } from './RoleSelectionForm';
 import { motion } from 'framer-motion';
 import { ResponsiveInput } from '@/components/ui/responsive-input';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ProfileSetupFormProps {
   role: UserRole;
@@ -143,7 +143,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         ...(formData.email && { email: formData.email })
       };
       
-      // Save profile data to database
+      // Save profile data to database or localStorage for test users
       const result = await saveUserProfile(userId, profileData);
       
       if (!result && !isTestUser) {
@@ -152,36 +152,75 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
       
       // Create role-specific profile
       if (role === 'seller') {
-        const { error: sellerError } = await supabase
-          .from('seller_profiles')
-          .insert({
-            user_id: userId,
-            business_name: formData.businessName,
-            business_description: formData.businessDescription || "Delicious homemade food",
-            cuisine_types: [formData.cuisineType],
-            is_active: true,
-            kitchen_open: true
-          });
-          
-        if (sellerError) {
-          console.error("Failed to create seller profile:", sellerError);
-          // Continue anyway
+        if (isTestUser) {
+          // For test users, create a "virtual" seller profile in localStorage
+          const testModeUser = localStorage.getItem('test_mode_user');
+          if (testModeUser) {
+            const userData = JSON.parse(testModeUser);
+            
+            // Add seller-specific fields to test user data
+            userData.business_name = formData.businessName;
+            userData.business_description = formData.businessDescription || "Delicious homemade food";
+            userData.cuisine_types = [formData.cuisineType];
+            userData.is_active = true;
+            userData.kitchen_open = true;
+            
+            // Store updated user data
+            localStorage.setItem('test_mode_user', JSON.stringify(userData));
+            console.log("Created test seller profile:", userData);
+          }
+        } else {
+          // Create real seller profile in database
+          const { error: sellerError } = await supabase
+            .from('seller_profiles')
+            .insert({
+              user_id: userId,
+              business_name: formData.businessName,
+              business_description: formData.businessDescription || "Delicious homemade food",
+              cuisine_types: [formData.cuisineType],
+              is_active: true,
+              kitchen_open: true
+            });
+            
+          if (sellerError) {
+            console.error("Failed to create seller profile:", sellerError);
+            throw new Error(sellerError.message || "Failed to create seller profile");
+          }
         }
       }
       
       if (role === 'captain') {
-        const { error: captainError } = await supabase
-          .from('captain_profiles')
-          .insert({
-            user_id: userId,
-            vehicle_type: formData.vehicleType,
-            vehicle_registration: formData.vehicleRegistration,
-            is_active: true
-          });
-          
-        if (captainError) {
-          console.error("Failed to create captain profile:", captainError);
-          // Continue anyway
+        if (isTestUser) {
+          // For test users, create a "virtual" captain profile in localStorage
+          const testModeUser = localStorage.getItem('test_mode_user');
+          if (testModeUser) {
+            const userData = JSON.parse(testModeUser);
+            
+            // Add captain-specific fields to test user data
+            userData.vehicle_type = formData.vehicleType;
+            userData.vehicle_registration = formData.vehicleRegistration;
+            userData.is_active = true;
+            userData.is_available = false;
+            
+            // Store updated user data
+            localStorage.setItem('test_mode_user', JSON.stringify(userData));
+            console.log("Created test captain profile:", userData);
+          }
+        } else {
+          // Create real captain profile in database
+          const { error: captainError } = await supabase
+            .from('captain_profiles')
+            .insert({
+              user_id: userId,
+              vehicle_type: formData.vehicleType,
+              vehicle_registration: formData.vehicleRegistration,
+              is_active: true
+            });
+            
+          if (captainError) {
+            console.error("Failed to create captain profile:", captainError);
+            throw new Error(captainError.message || "Failed to create captain profile");
+          }
         }
       }
       
@@ -201,6 +240,7 @@ const ProfileSetupForm: React.FC<ProfileSetupFormProps> = ({ role, onSuccess, is
         description: error.message || "Failed to create profile",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   };

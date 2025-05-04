@@ -94,15 +94,40 @@ const CaptainDashboard: React.FC = () => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase
-          .from('captain_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (error) throw error;
+        // Check if user is in test mode
+        const isTestUser = user.id.startsWith('test-');
         
-        setCaptainProfile(data);
+        if (isTestUser) {
+          // For test users, get profile from localStorage
+          const testModeUser = localStorage.getItem('test_mode_user');
+          if (testModeUser) {
+            const userData = JSON.parse(testModeUser);
+            // Create a virtual captain profile from test user data
+            setCaptainProfile({
+              id: userData.id,
+              user_id: userData.id,
+              vehicle_type: userData.vehicle_type || 'Motorcycle',
+              vehicle_registration: userData.vehicle_registration || 'TEST-REG',
+              is_available: userData.is_available || false,
+              is_active: userData.is_active || true,
+              created_at: userData.created_at,
+              updated_at: new Date().toISOString()
+            });
+          } else {
+            throw new Error("Test user data not found");
+          }
+        } else {
+          // For real users, fetch from database
+          const { data, error } = await supabase
+            .from('captain_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (error) throw error;
+          
+          setCaptainProfile(data);
+        }
       } catch (error) {
         console.error('Error fetching captain profile:', error);
         toast.error('Failed to load your profile');
@@ -153,17 +178,37 @@ const CaptainDashboard: React.FC = () => {
     if (!captainProfile || !user) return;
     
     try {
-      const { error } = await supabase
-        .from('captain_profiles')
-        .update({ is_available: value })
-        .eq('id', captainProfile.id);
-        
-      if (error) throw error;
+      // Check if user is in test mode
+      const isTestUser = user.id.startsWith('test-');
       
-      setCaptainProfile({
-        ...captainProfile,
-        is_available: value
-      });
+      if (isTestUser) {
+        // Update test user data in localStorage
+        const testModeUser = localStorage.getItem('test_mode_user');
+        if (testModeUser) {
+          const userData = JSON.parse(testModeUser);
+          userData.is_available = value;
+          localStorage.setItem('test_mode_user', JSON.stringify(userData));
+          
+          // Update local state
+          setCaptainProfile({
+            ...captainProfile,
+            is_available: value
+          });
+        }
+      } else {
+        // Update real user in database
+        const { error } = await supabase
+          .from('captain_profiles')
+          .update({ is_available: value })
+          .eq('id', captainProfile.id);
+          
+        if (error) throw error;
+        
+        setCaptainProfile({
+          ...captainProfile,
+          is_available: value
+        });
+      }
       
       toast.success(value ? 'You are now available for deliveries' : 'You are now offline');
       

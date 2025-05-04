@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { saveUserProfile } from '@/services/profileService';
+import { v4 as uuidv4 } from 'uuid';
 
 interface OTPResult {
   success: boolean;
@@ -154,8 +155,8 @@ export const useAuthOTP = () => {
           
         console.log("Lookup result for test user:", { existingProfile, lookupError });
         
-        // Create a unique ID for the test user
-        const testUserId = `test-${Date.now()}`;
+        // Generate a proper UUID for the test user instead of using string prefix
+        const testUserId = uuidv4();
         
         // Create test user data
         let testUserData: any = {

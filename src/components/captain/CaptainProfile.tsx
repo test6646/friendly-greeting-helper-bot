@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,19 +30,48 @@ const CaptainProfile: React.FC<CaptainProfileProps> = ({ captainId }) => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase
-          .from('captain_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (error) throw error;
+        // Check if user is in test mode
+        const isTestUser = captainId.startsWith('test-') || (user && user.id.startsWith('test-'));
         
-        setProfile(data);
-        setFormData({
-          vehicleType: data?.vehicle_type || '',
-          vehicleRegistration: data?.vehicle_registration || '',
-        });
+        if (isTestUser) {
+          // For test users, get profile from localStorage
+          const testModeUser = localStorage.getItem('test_mode_user');
+          if (testModeUser) {
+            const userData = JSON.parse(testModeUser);
+            // Create a virtual captain profile from test user data
+            const testProfile = {
+              id: userData.id,
+              user_id: userData.id,
+              vehicle_type: userData.vehicle_type || 'Motorcycle',
+              vehicle_registration: userData.vehicle_registration || 'TEST-REG',
+              is_available: userData.is_available || false,
+              is_active: userData.is_active || true
+            };
+            
+            setProfile(testProfile);
+            setFormData({
+              vehicleType: testProfile.vehicle_type,
+              vehicleRegistration: testProfile.vehicle_registration,
+            });
+          } else {
+            throw new Error("Test user data not found");
+          }
+        } else {
+          // For real users, fetch from database
+          const { data, error } = await supabase
+            .from('captain_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (error) throw error;
+          
+          setProfile(data);
+          setFormData({
+            vehicleType: data?.vehicle_type || '',
+            vehicleRegistration: data?.vehicle_registration || '',
+          });
+        }
       } catch (error) {
         console.error('Error fetching captain profile:', error);
         toast.error('Failed to load your profile');
@@ -75,21 +105,43 @@ const CaptainProfile: React.FC<CaptainProfileProps> = ({ captainId }) => {
     try {
       setIsLoading(true);
       
-      const { error } = await supabase
-        .from('captain_profiles')
-        .update({
+      // Check if user is in test mode
+      const isTestUser = user.id.startsWith('test-');
+      
+      if (isTestUser) {
+        // Update test user data in localStorage
+        const testModeUser = localStorage.getItem('test_mode_user');
+        if (testModeUser) {
+          const userData = JSON.parse(testModeUser);
+          userData.vehicle_type = formData.vehicleType;
+          userData.vehicle_registration = formData.vehicleRegistration;
+          localStorage.setItem('test_mode_user', JSON.stringify(userData));
+          
+          // Update local state
+          setProfile({
+            ...profile,
+            vehicle_type: formData.vehicleType,
+            vehicle_registration: formData.vehicleRegistration,
+          });
+        }
+      } else {
+        // Update real profile in database
+        const { error } = await supabase
+          .from('captain_profiles')
+          .update({
+            vehicle_type: formData.vehicleType,
+            vehicle_registration: formData.vehicleRegistration,
+          })
+          .eq('id', profile.id);
+          
+        if (error) throw error;
+        
+        setProfile({
+          ...profile,
           vehicle_type: formData.vehicleType,
           vehicle_registration: formData.vehicleRegistration,
-        })
-        .eq('id', profile.id);
-        
-      if (error) throw error;
-      
-      setProfile({
-        ...profile,
-        vehicle_type: formData.vehicleType,
-        vehicle_registration: formData.vehicleRegistration,
-      });
+        });
+      }
       
       toast.success('Profile updated successfully');
     } catch (error) {

@@ -64,7 +64,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           
           // Create user profile from test data
           const testProfile: UserProfile = {
-            id: testUserData.id,
+            id: testUserData.id, // This will now be a valid UUID
             first_name: testUserData.first_name || 'New',
             last_name: testUserData.last_name || 'User',
             phone: testUserData.phone || '+910000000000',
@@ -78,14 +78,19 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           console.log('Test user refreshed:', testProfile);
           
           // Try to save/update the test user profile in the database
-          await saveUserProfile(testProfile.id, {
-            first_name: testProfile.first_name,
-            last_name: testProfile.last_name,
-            role: testProfile.role,
-            phone: testProfile.phone,
-            gender: testProfile.gender,
-            profile_image_url: testProfile.profile_image_url,
-          });
+          try {
+            await saveUserProfile(testProfile.id, {
+              first_name: testProfile.first_name,
+              last_name: testProfile.last_name,
+              role: testProfile.role,
+              phone: testProfile.phone,
+              gender: testProfile.gender,
+              profile_image_url: testProfile.profile_image_url,
+            });
+          } catch (error) {
+            console.error("Error saving test user profile to database:", error);
+            // Continue anyway as the user exists in localStorage
+          }
           
           return;
         } catch (e) {
@@ -192,7 +197,7 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             
             // Create user profile from test data
             const testProfile: UserProfile = {
-              id: testUserData.id,
+              id: testUserData.id, // This will now be a valid UUID
               first_name: testUserData.first_name || 'New',
               last_name: testUserData.last_name || 'User',
               phone: testUserData.phone || '+910000000000',
@@ -216,14 +221,19 @@ export const SimpleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             console.log('Test user initialized:', testProfile);
             
             // Try to save/update the test user profile in the database
-            await saveUserProfile(testProfile.id, {
-              first_name: testProfile.first_name,
-              last_name: testProfile.last_name,
-              role: testProfile.role,
-              phone: testProfile.phone,
-              gender: testProfile.gender,
-              profile_image_url: testProfile.profile_image_url,
-            });
+            try {
+              await saveUserProfile(testProfile.id, {
+                first_name: testProfile.first_name,
+                last_name: testProfile.last_name,
+                role: testProfile.role,
+                phone: testProfile.phone,
+                gender: testProfile.gender,
+                profile_image_url: testProfile.profile_image_url,
+              });
+            } catch (error) {
+              console.error("Error saving test user profile to database:", error);
+              // Continue anyway as the user exists in localStorage
+            }
           } catch (e) {
             console.error('Error parsing test user:', e);
             localStorage.removeItem('test_mode_user');
